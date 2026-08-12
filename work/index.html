@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="全部作品：浮境 FLOATATA 悬浮移动空间、AURORA AI 磁悬浮概念车、FH-X8 火场侦察无人机。">
+  <title>作品 · 产品设计 × AI 创作</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322d3ee'/%3E%3Cstop offset='1' stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Ctext x='50' y='68' font-size='52' font-weight='800' fill='%2306111f' text-anchor='middle' font-family='Arial'%3E%E4%BD%9C%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site.css">
+  <script src="/nav.js" defer></script>
+  <script src="/fx.js" defer></script>
+</head>
+<body>
+  <main class="site">
+
+    <section class="hero">
+      <p class="kicker" data-parallax="8">WORK · 作品</p>
+      <h1 class="hero-title" data-parallax="-16">作品<span class="hl">集</span></h1>
+      <p class="hero-sub" data-parallax="12">产品设计与特种装备方向的代表项目，每个项目独立成页，展示完整展板与设计思路。</p>
+    </section>
+
+    <section class="sect" style="margin-top:36px;">
+      <div class="filters reveal">
+        <button class="filter-btn on" data-filter="all" type="button">全部</button>
+        <button class="filter-btn" data-filter="design" type="button">产品设计</button>
+        <button class="filter-btn" data-filter="special" type="button">特种装备</button>
+        <span class="filter-count" style="margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim);align-self:center;letter-spacing:1px;">共 3 个项目</span>
+      </div>
+
+      <div class="work-grid">
+
+        <!-- 浮境 FLOATATA -->
+        <a class="work-card tilt reveal" href="/work/floata/" data-cat="design">
+          <div class="wc-media">
+            <span class="wc-tag">产品设计</span>
+            <img src="/assets/work/floating-space.jpg"
+                 srcset="/assets/work/floating-space.jpg 900w, /assets/work/floating-space-lg.jpg 1600w"
+                 sizes="(max-width:760px) 100vw, 50vw"
+                 alt="浮境 FLOATATA 展板" loading="lazy">
+          </div>
+          <div class="wc-info">
+            <h3 class="wc-title">浮境 FLOATATA</h3>
+            <p class="wc-desc">悬浮移动空间概念——瞬浮推进、AI 智驾座舱、情绪健康系统。</p>
+            <span class="wc-go">查看项目 →</span>
+          </div>
+        </a>
+
+        <!-- AURORA AI -->
+        <a class="work-card tilt reveal" data-delay="90" href="/work/aurora/" data-cat="design">
+          <div class="wc-media">
+            <span class="wc-tag">产品设计</span>
+            <img src="/assets/work/tech-sedan.jpg"
+                 srcset="/assets/work/tech-sedan.jpg 900w, /assets/work/tech-sedan-lg.jpg 1600w"
+                 sizes="(max-width:760px) 100vw, 50vw"
+                 alt="AURORA AI 概念车展板" loading="lazy">
+          </div>
+          <div class="wc-info">
+            <h3 class="wc-title">AURORA AI</h3>
+            <p class="wc-desc">AI 磁悬浮智能概念车——零界面座舱、紫蓝光效、磁悬浮动力。</p>
+            <span class="wc-go">查看项目 →</span>
+          </div>
+        </a>
+
+        <!-- FH-X8 -->
+        <a class="work-card tilt reveal" href="/work/fh-x8/" data-cat="special">
+          <div class="wc-media">
+            <span class="wc-tag">特种装备</span>
+            <img src="/assets/work/product.jpg"
+                 srcset="/assets/work/product.jpg 900w, /assets/work/product-lg.jpg 1600w"
+                 sizes="(max-width:760px) 100vw, 50vw"
+                 alt="FH-X8 霄戈·烽御 无人机展板" loading="lazy">
+          </div>
+          <div class="wc-info">
+            <h3 class="wc-title">FH-X8 霄戈·烽御</h3>
+            <p class="wc-desc">火场高楼降温排烟一体化侦察无人机——双光谱感知与悬停缓释模块。</p>
+            <span class="wc-go">查看项目 →</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <footer class="site-footer reveal">
+      <p class="small">© <span id="year">2026</span> 作品集 · 产品设计 × AI 创作</p>
+    </footer>
+
+  </main>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
