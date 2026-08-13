@@ -1062,16 +1062,25 @@ img { max-width: 100%; }
   opacity: 0; visibility: hidden;
   transition: opacity .3s ease, visibility .3s ease;
   cursor: zoom-out;
+  touch-action: none; -webkit-touch-action: none;
 }
 .lightbox.on { opacity: 1; visibility: visible; }
-.lb-figure { margin: 0; max-width: 1120px; max-height: 84vh; display: flex; flex-direction: column; gap: 12px; }
+.lb-figure { margin: 0; max-width: 1120px; max-height: 84vh; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.lb-figure.fullsize-mode { max-width: none; max-height: none; overflow: visible; }
+.lightbox.fullsize-active { padding: 2vh 2vw; overflow: auto; }
 .lightbox img {
   max-width: 100%; max-height: 78vh; object-fit: contain; display: block;
   border-radius: 12px; border: 1px solid var(--line);
   box-shadow: 0 0 50px rgba(0, 240, 255, .18), 0 0 60px rgba(255, 43, 214, .12);
   transform: scale(.94); transition: transform .35s cubic-bezier(.2, .7, .3, 1);
+  touch-action: none; -webkit-touch-action: none;
 }
 .lightbox.on img { transform: scale(1); }
+.lightbox img.fullsize {
+  max-width: none; max-height: none;
+  width: auto; height: auto;
+  object-fit: contain;
+}
 .lightbox figcaption { text-align: center; font-family: var(--mono); font-size: 13px; color: var(--muted); letter-spacing: 1px; }
 .lb-close, .lb-prev, .lb-next {
   position: fixed; z-index: 1; width: 50px; height: 50px;
@@ -1090,6 +1099,16 @@ img { max-width: 100%; }
   box-shadow: 0 0 26px rgba(0, 240, 255, .55), 0 0 26px rgba(255, 43, 214, .45);
 }
 .lb-prev:hover, .lb-next:hover { transform: translateY(-50%) scale(1.1); }
+.lightbox img.zoomed { cursor: grab; }
+.lightbox img.zoomed.dragging { cursor: grabbing; transition: none; -webkit-transition: none; }
+.lb-hint {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  z-index: 2; padding: 7px 16px; border-radius: 999px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: .5px; color: var(--muted);
+  background: rgba(4, 5, 12, .55); border: 1px solid var(--line);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  pointer-events: none; user-select: none;
+}
 
 /* ================= 作品切换查看器（点击/按钮/平滑过渡） ================= */
 .viewer3d {
@@ -1114,16 +1133,19 @@ img { max-width: 100%; }
 .viewer3d-img {
   position: absolute; inset: 0;
   width: 100%; height: 100%; object-fit: contain;
-  transition: opacity .42s ease, transform .42s ease;
+  opacity: 1;
+  will-change: opacity, transform;
+  backface-visibility: hidden;
 }
 .viewer3d-img--active { opacity: 1; z-index: 1; }
 .viewer3d-img--next { opacity: 0; z-index: 2; }
 
-/* 过渡方向动画 */
-.viewer3d-stage.v-slide-left .viewer3d-img--active { transform: translateX(-6%); }
-.viewer3d-stage.v-slide-right .viewer3d-img--active { transform: translateX(6%); }
-.viewer3d-stage.v-slide-left .viewer3d-img--next { transform: translateX(6%); }
-.viewer3d-stage.v-slide-right .viewer3d-img--next { transform: translateX(-6%); }
+/* 过渡中才启用动画（内联 transform 驱动滑动+淡入淡出；无模糊，手机不卡） */
+.viewer3d-stage.v-transitioning .viewer3d-img {
+  transition:
+    opacity .42s cubic-bezier(.22, .61, .36, 1),
+    transform .42s cubic-bezier(.22, .61, .36, 1);
+}
 
 /* 网格叠加层 */
 .viewer3d::after {
@@ -1147,17 +1169,52 @@ img { max-width: 100%; }
   color: var(--c1); cursor: pointer;
   box-shadow: 0 0 14px rgba(0, 240, 255, .15), inset 0 0 12px rgba(0, 240, 255, .06);
   transition: all .28s ease; opacity: .78;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
 .viewer3d-btn svg { width: 20px; height: 20px; stroke-width: 2.2; }
-.viewer3d-btn:hover {
-  opacity: 1; border-color: var(--c1);
-  background: rgba(0, 240, 255, .12);
-  box-shadow: 0 0 24px rgba(0, 240, 255, .32), inset 0 0 16px rgba(0, 240, 255, .1);
-  transform: translateY(-50%) scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .viewer3d-btn:hover {
+    opacity: 1; border-color: var(--c1);
+    background: rgba(0, 240, 255, .12);
+    box-shadow: 0 0 24px rgba(0, 240, 255, .32), inset 0 0 16px rgba(0, 240, 255, .1);
+    transform: translateY(-50%) scale(1.1);
+  }
 }
 .viewer3d-btn:active { transform: translateY(-50%) scale(.94); }
 .viewer3d-btn--prev { left: 12px; }
 .viewer3d-btn--next { right: 12px; }
+
+/* 放大按钮（右下角，更醒目） */
+.viewer3d-btn--zoom {
+  top: auto; bottom: 14px; right: 14px;
+  transform: none;
+  width: 50px; height: 50px;
+  border-color: rgba(255, 43, 214, .45);
+  color: #ff2bd6;
+  background: rgba(4, 6, 18, .78);
+  box-shadow:
+    0 0 18px rgba(255, 43, 214, .22),
+    inset 0 0 14px rgba(255, 43, 214, .08);
+  opacity: 1;
+  animation: zoomPulse 2.8s ease-in-out infinite;
+}
+.viewer3d-btn--zoom svg { width: 24px; height: 24px; }
+@media (hover: hover) and (pointer: fine) {
+  .viewer3d-btn--zoom:hover {
+    border-color: var(--c3); color: #fff;
+    background: linear-gradient(135deg, rgba(255, 43, 214, .18), rgba(168, 85, 247, .18));
+    box-shadow:
+      0 0 30px rgba(255, 43, 214, .42),
+      0 0 50px rgba(168, 85, 247, .2),
+      inset 0 0 20px rgba(255, 43, 214, .12);
+    transform: scale(1.1) !important;
+  }
+}
+.viewer3d-btn--zoom:active { transform: scale(.94) !important; }
+@keyframes zoomPulse {
+  0%, 100% { box-shadow: 0 0 18px rgba(255, 43, 214, .22), inset 0 0 14px rgba(255, 43, 214, .08); }
+  50% { box-shadow: 0 0 28px rgba(255, 43, 214, .38), inset 0 0 20px rgba(255, 43, 214, .14); }
+}
 
 /* 底部信息栏 */
 .viewer3d-hint {

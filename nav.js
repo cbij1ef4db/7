@@ -7,8 +7,8 @@
   var SITE_TAG = 'PORTFOLIO · 2026';
   var LINKS = [
     { href: '/', label: '首页' },
-    { href: '/work/', label: '作品' },
-    { href: '/about/', label: '关于' },
+    { href: '/work/index.html', label: '作品' },
+    { href: '/about/index.html', label: '关于' },
   ];
   // ==== 配置区结束 ====
 
@@ -52,6 +52,11 @@
     '  box-shadow:0 0 10px rgba(0,240,255,.7),0 0 20px rgba(168,85,247,.4);}',
     /* body padding */
     'body{padding-top:64px !important;}',
+    /* 撤退返回按钮（导航栏左上角外侧，纯箭头） */
+    '.sk-back{position:fixed;top:14px;left:12px;z-index:9995;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;text-decoration:none;color:#04050c;font-size:20px;line-height:1;background:linear-gradient(135deg,#00f0ff,#a855f7);border:1px solid rgba(255,255,255,.35);box-shadow:0 0 12px rgba(0,240,255,.28),0 0 20px rgba(168,85,247,.15);transition:transform .2s ease,box-shadow .25s ease;cursor:pointer;will-change:transform;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}',
+    '.sk-back:hover{transform:translateX(-2px) scale(1.08);box-shadow:0 0 20px rgba(0,240,255,.45),0 0 32px rgba(168,85,247,.25);}',
+    '.sk-back:active{transform:scale(.92);}',
+    '@media (max-width:640px){.sk-back{top:11px;left:6px;width:34px;height:34px;font-size:18px;}}',
     '@media (max-width:640px){',
     '.sk-brand span{display:none;}.sk-brand b{font-size:15px;}',
     '.sk-links a{padding:7px 11px;font-size:13px;}.sk-nav{padding:0 14px;height:58px;}',
@@ -68,14 +73,38 @@
   nav.setAttribute('aria-label', '主导航');
   var path = location.pathname.replace(/\/+$/, '') || '/';
   var linksHtml = LINKS.map(function (l) {
-    var target = l.href.replace(/\/+$/, '') || '/';
-    var on = path === target ? ' class="on"' : '';
+    var target = l.href.replace(/index\.html$/, '').replace(/\/+$/, '') || '/';
+    var on = target === '/' ? (path === '/' ? ' class="on"' : '') : (path.indexOf(target) === 0 ? ' class="on"' : '');
     return '<a href="' + l.href + '"' + on + '>' + l.label + '</a>';
   }).join('');
   nav.innerHTML =
     '<a class="sk-brand" href="/"><b>' + SITE_NAME + '</b><span>' + SITE_TAG + '</span></a>' +
     '<nav class="sk-links" aria-label="页面导航">' + linksHtml + '</nav>';
   document.body.prepend(nav);
+
+  /* ---------- 撤退返回按钮（纯箭头，嵌入导航栏左上角） ---------- */
+  (function () {
+    var back = document.createElement('a');
+    back.className = 'sk-back';
+    back.href = '/';
+    back.setAttribute('role', 'button');
+    back.setAttribute('aria-label', '返回');
+    back.title = '返回';
+    back.innerHTML = '‹'; /* 左单箭头 */
+    back.addEventListener('click', function (e) {
+      e.preventDefault();
+      // 根据当前路径决定回哪里，避免 history.back() 黑屏
+      var p = location.pathname;
+      if (p.indexOf('/work/') !== -1 && p !== '/work/index.html') {
+        location.href = '/work/index.html';
+      } else if (p !== '/' && p !== '/index.html') {
+        location.href = '/';
+      } else {
+        // 已在首页，不跳转
+      }
+    });
+    document.body.prepend(back);
+  })();
 
   /* ---------- 滚动行为（只加深，永不隐藏） ---------- */
   function onScroll() {

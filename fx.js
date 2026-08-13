@@ -351,25 +351,33 @@
     lb.innerHTML = '<button class="lb-close" aria-label="关闭">✕</button>' +
       '<button class="lb-prev" aria-label="上一张">‹</button>' +
       '<button class="lb-next" aria-label="下一张">›</button>' +
-      '<figure class="lb-figure"><img alt=""><figcaption></figcaption></figure>';
+      '<figure class="lb-figure"><img alt=""><figcaption></figcaption></figure>' +
+      '<div class="lb-hint">单击/滚轮放大 · 拖动平移 · 双指捏合</div>';
     document.body.appendChild(lb);
     var limg = lb.querySelector('img');
     var lcap = lb.querySelector('figcaption');
     var list = [], cur = 0;
+    var scale = 1, tx = 0, ty = 0, zoomed = false, _moved = false;
+
+    function apply() { limg.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')'; }
+    function resetZoom() { scale = 1; tx = 0; ty = 0; zoomed = false; limg.classList.remove('zoomed', 'dragging', 'fullsize'); lb.querySelector('.lb-figure').classList.remove('fullsize-mode'); apply(); }
+    function setZoom(s) { scale = Math.min(5, Math.max(1, s)); zoomed = scale > 1.001; limg.classList.toggle('zoomed', zoomed); apply(); }
+
+    function show() { var o = list[cur]; limg.src = o.src; limg.alt = o.cap; lcap.textContent = o.cap; resetZoom(); }
+    function openLb() { lb.classList.add('on'); lb.setAttribute('aria-hidden', 'false'); show(); document.body.style.overflow = 'hidden'; }
+    function closeLb() { lb.classList.remove('on', 'fullsize-active'); lb.setAttribute('aria-hidden', 'true'); resetZoom(); lb.querySelector('.lb-figure').classList.remove('fullsize-mode'); document.body.style.overflow = ''; }
+    function nav(d) { cur = (cur + d + list.length) % list.length; show(); }
+
     items.forEach(function (it, i) {
       it.style.cursor = 'zoom-in';
       it.addEventListener('click', function (e) {
+        if (it.hasAttribute('data-link')) return; // 封面图：留给外层跳转
         e.preventDefault(); e.stopPropagation();
-        list = items.map(function (x) {
-          return { src: x.getAttribute('data-lightbox'), cap: x.getAttribute('data-caption') || '' };
-        });
+        list = items.map(function (x) { return { src: x.getAttribute('data-lightbox'), cap: x.getAttribute('data-caption') || '' }; });
         cur = i; openLb();
       });
     });
-    function show() { var o = list[cur]; limg.src = o.src; limg.alt = o.cap; lcap.textContent = o.cap; }
-    function openLb() { lb.classList.add('on'); lb.setAttribute('aria-hidden', 'false'); show(); document.body.style.overflow = 'hidden'; }
-    function closeLb() { lb.classList.remove('on'); lb.setAttribute('aria-hidden', 'true'); document.body.style.overflow = ''; }
-    function nav(d) { cur = (cur + d + list.length) % list.length; show(); }
+
     lb.querySelector('.lb-close').addEventListener('click', closeLb);
     lb.querySelector('.lb-prev').addEventListener('click', function (e) { e.stopPropagation(); nav(-1); });
     lb.querySelector('.lb-next').addEventListener('click', function (e) { e.stopPropagation(); nav(1); });
@@ -382,6 +390,66 @@
       else if (e.key === 'ArrowLeft') nav(-1);
       else if (e.key === 'ArrowRight') nav(1);
     });
+
+    // 缩放 + 平移
+    limg.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (_moved) { _moved = false; return; }   // 拖动后不触发缩放
+      setZoom(zoomed ? 1 : 2.6);
+    });
+    lb.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      setZoom(scale * (e.deltaY < 0 ? 1.18 : 0.85));
+    }, { passive: false });
+
+    // 暴露最小 API：供外部（如 viewer3d 放大按钮）调用打开灯箱 + 缩放
+    window.__lightboxAPI = {
+      open: function (imageList, startIndex) {
+        list = imageList;
+        cur = Math.max(0, Math.min(startIndex, list.length - 1));
+        openLb();
+      },
+      zoomTo: function (s, delay) {
+        setTimeout(function () {
+          lb.classList.add('fullsize-active');
+          limg.classList.add('fullsize');
+          lb.querySelector('.lb-figure').classList.add('fullsize-mode');
+          setZoom(s);
+        }, delay || 380);
+      },
+      close: function () { closeLb(); }
+    };
+
+    // 鼠标拖动平移
+    limg.addEventListener('mousedown', function (e) {
+      if (!zoomed) return;
+      e.preventDefault();
+      var sx = e.clientX - tx, sy = e.clientY - ty;
+      limg.classList.add('dragging');
+      function mv(ev) { tx = ev.clientX - sx; ty = ev.clientY - sy; apply(); }
+      function up() { limg.classList.remove('dragging'); document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); }
+      document.addEventListener('mousemove', mv); document.removeEventListener('mouseup', up);
+    });
+
+    // 触摸：双指捏合缩放 + 单指拖动平移
+    var pinch = { d: 0, s: 1 }, t0 = null;
+    function dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+    limg.addEventListener('touchstart', function (e) {
+      _moved = false;
+      if (e.touches.length === 2) { pinch.d = dist(e.touches); pinch.s = scale; }
+      else if (e.touches.length === 1 && zoomed) { t0 = { x: e.touches[0].clientX - tx, y: e.touches[0].clientY - ty }; }
+    }, { passive: false });
+    limg.addEventListener('touchmove', function (e) {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        setZoom(pinch.s * dist(e.touches) / pinch.d);
+      } else if (e.touches.length === 1 && zoomed && t0) {
+        var dx = e.touches[0].clientX - t0.x, dy = e.touches[0].clientY - t0.y;
+        if (Math.abs(dx) + Math.abs(dy) > 6) _moved = true;
+        tx = dx; ty = dy; apply();
+      }
+    }, { passive: false });
+    limg.addEventListener('touchend', function () { t0 = null; });
   })();
 
   /* ---------------- 11 作品切换查看器（点击/按钮/平滑过渡） ---------------- */
@@ -433,39 +501,56 @@
       hint.innerHTML = '<span class="viewer3d-idx">1 / ' + frames.length + '</span><div class="viewer3d-dots">' + dotsHtml + '</div>';
       v.appendChild(hint);
 
+      // 放大按钮 → 用灯箱打开当前图
+      var btnZoom = document.createElement('button');
+      btnZoom.className = 'viewer3d-btn viewer3d-btn--zoom';
+      btnZoom.setAttribute('aria-label', '放大查看');
+      btnZoom.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>';
+      v.appendChild(btnZoom);
+
       var idx = 0, span = frames.length, transitioning = false;
 
-      // 切换帧（带平滑过渡）
+      // 切换帧（自然丝滑：滑动 + 交叉淡入淡出，无模糊避免卡顿）
       function goTo(newIdx, direction) {
         if (transitioning || newIdx === idx) return;
         if (newIdx < 0) newIdx = span - 1;
         if (newIdx >= span) newIdx = 0;
         transitioning = true;
 
-        // 预加载下一帧
+        // 预加载下一帧到隐藏缓冲区
         imgNext.src = frames[newIdx];
         imgNext.alt = v.getAttribute('data-alt') || '';
 
-        // 方向类：slide-left 或 slide-right
-        var dirClass = direction === -1 ? 'v-slide-left' : 'v-slide-right';
-        stage.classList.add(dirClass);
-
-        // 交叉淡入淡出
+        var back = direction === -1; // 上一张：新图从右进、旧图向左出
+        // 起点偏移（先关过渡，提交起点态）
+        stage.classList.remove('v-transitioning');
+        img.style.opacity = '1';
+        img.style.transform = 'translateX(0) scale(1)';
         imgNext.style.opacity = '1';
-        img.classList.remove('viewer3d-img--active');
-        imgNext.classList.add('viewer3d-img--active');
+        imgNext.style.transform = 'translateX(' + (back ? '5%' : '-5%') + ') scale(1.04)';
+        void stage.offsetWidth; // 强制 reflow，提交起点
 
+        // 启用过渡 + 终点态
+        stage.classList.add('v-transitioning');
+        imgNext.style.transform = 'translateX(0) scale(1)';
+        imgNext.style.opacity = '1';
+        img.style.transform = 'translateX(' + (back ? '-5%' : '5%') + ') scale(.96)';
+        img.style.opacity = '0';
+
+        var dur = reduce ? 60 : 420;
         setTimeout(function () {
-          // 交换引用：img 变成当前显示的，imgNext 变成隐藏的
-          img.src = frames[newIdx];
-          img.style.opacity = '';
-          img.classList.add('viewer3d-img--active');
-          imgNext.style.opacity = '0';
-          imgNext.classList.remove('viewer3d-img--active');
-          stage.classList.remove(dirClass);
+          stage.classList.remove('v-transitioning');
+          img.style.transform = ''; img.style.opacity = '';
+          imgNext.style.transform = ''; imgNext.style.opacity = '';
+          // 交换角色：缓冲区变当前显示
+          img.classList.remove('viewer3d-img--active');
+          img.classList.add('viewer3d-img--next');
+          imgNext.classList.remove('viewer3d-img--next');
+          imgNext.classList.add('viewer3d-img--active');
+          var tmp = img; img = imgNext; imgNext = tmp;
           idx = newIdx;
           transitioning = false;
-        }, reduce ? 50 : 420);
+        }, dur);
 
         // 更新计数器和圆点
         hint.querySelector('.viewer3d-idx').textContent = (newIdx + 1) + ' / ' + span;
@@ -476,6 +561,14 @@
       // 按钮事件
       btnL.addEventListener('click', function (e) { e.stopPropagation(); goTo(idx - 1, -1); });
       btnR.addEventListener('click', function (e) { e.stopPropagation(); goTo(idx + 1, 1); });
+      btnZoom.addEventListener('click', function (e) {
+        e.stopPropagation();
+        // 通过灯箱暴露的 API 打开：整图按比例适配屏幕（不过度放大，可手动缩放看细节）
+        if (!window.__lightboxAPI) return;
+        var alt = v.getAttribute('data-alt') || '';
+        var imageList = frames.map(function (f) { return { src: f, cap: alt }; });
+        window.__lightboxAPI.open(imageList, idx);
+      });
 
       // 点击图片本身 → 下一张
       stage.addEventListener('click', function () { goTo(idx + 1, 1); });
